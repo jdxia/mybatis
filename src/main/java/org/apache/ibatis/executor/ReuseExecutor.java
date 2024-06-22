@@ -46,8 +46,11 @@ public class ReuseExecutor extends BaseExecutor {
 
   @Override
   public int doUpdate(MappedStatement ms, Object parameter) throws SQLException {
+    //获得配置文件
     Configuration configuration = ms.getConfiguration();
+    //获得statementHandler 包括插件内容
     StatementHandler handler = configuration.newStatementHandler(this, ms, parameter, RowBounds.DEFAULT, null, null);
+    //转换为PrepareStatement
     Statement stmt = prepareStatement(handler, ms.getStatementLog());
     return handler.update(stmt);
   }
@@ -71,22 +74,29 @@ public class ReuseExecutor extends BaseExecutor {
   @Override
   public List<BatchResult> doFlushStatements(boolean isRollback) {
     for (Statement stmt : statementMap.values()) {
+      //关闭Statement
       closeStatement(stmt);
     }
+    //清空sql
     statementMap.clear();
     return Collections.emptyList();
   }
 
   private Statement prepareStatement(StatementHandler handler, Log statementLog) throws SQLException {
     Statement stmt;
+    //获得sql语句
     BoundSql boundSql = handler.getBoundSql();
+    //查看是否存在Statement
     String sql = boundSql.getSql();
     if (hasStatementFor(sql)) {
+      //如果存在就获取Statement
       stmt = getStatement(sql);
       applyTransactionTimeout(stmt);
     } else {
       Connection connection = getConnection(statementLog);
+      //否则通过连接创建一个Statement
       stmt = handler.prepare(connection, transaction.getTimeout());
+      //将sql语句及对应的Statement 保存到map中
       putStatement(sql, stmt);
     }
     handler.parameterize(stmt);
@@ -95,6 +105,7 @@ public class ReuseExecutor extends BaseExecutor {
 
   private boolean hasStatementFor(String sql) {
     try {
+      //查看map中是否含有sql语句对应的Statement
       Statement statement = statementMap.get(sql);
       return statement != null && !statement.getConnection().isClosed();
     } catch (SQLException e) {
@@ -103,10 +114,12 @@ public class ReuseExecutor extends BaseExecutor {
   }
 
   private Statement getStatement(String s) {
+    //获得Sql语句对应的Statement
     return statementMap.get(s);
   }
 
   private void putStatement(String sql, Statement stmt) {
+    //将sql语句及对应的Statement保存到map中
     statementMap.put(sql, stmt);
   }
 

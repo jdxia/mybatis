@@ -33,6 +33,7 @@ public class InterceptorChain {
     return target;
   }
 
+  //调用了这个方法，将拦截器对象添加到List<Interceptor> interceptors集合中
   public void addInterceptor(Interceptor interceptor) {
     interceptors.add(interceptor);
   }

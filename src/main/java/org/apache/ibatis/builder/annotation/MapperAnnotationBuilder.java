@@ -114,21 +114,27 @@ public class MapperAnnotationBuilder {
 
   public void parse() {
     String resource = type.toString();
+    // 2. 检查接口是否已经加载
     if (!configuration.isResourceLoaded(resource)) {
+      // 加载Mapper接口对应的mapper.xml
       loadXmlResource();
       configuration.addLoadedResource(resource);
       assistant.setCurrentNamespace(type.getName());
+      // 3. 解析注解配置的缓存
       parseCache();
       parseCacheRef();
+      // 解析Mapper方法
       for (Method method : type.getMethods()) {
         if (!canHaveStatement(method)) {
           continue;
         }
+        // 4. 解析注解配置的ResultMap
         if (getAnnotationWrapper(method, false, Select.class, SelectProvider.class).isPresent()
             && method.getAnnotation(ResultMap.class) == null) {
           parseResultMap(method);
         }
         try {
+          // 5. 构造statement
           parseStatement(method);
         } catch (IncompleteElementException e) {
           configuration.addIncompleteMethod(new MethodResolver(this, method));
@@ -163,6 +169,14 @@ public class MapperAnnotationBuilder {
     // to prevent loading again a resource twice
     // this flag is set at XMLMapperBuilder#bindMapperForNamespace
     if (!configuration.isResourceLoaded("namespace:" + type.getName())) {
+      // 注意上面的判断多了一个namespace的前缀
+      /**
+       检查 Mapper 接口全限定名，是怕我们真的重复配置 Mapper 接口
+       实际情况下可能会出现一种情况，单独配置了某个 Mapper 接口，后来配置 Mapper 扫描的时候又把它扫描进来了，这样就引发 Mapper 接口的重复注册了
+
+       检查带着 namespace 前缀的 Mapper 接口全限定名，是为了避免重复加载 mapper.xml 的问题
+       mapper.xml 中配置了相同的 Mapper 接口名，在 MyBatis 初始化的时候先加载了 mapper.xml ，顺便记录了对应的 Mapper 接口，后来包扫描的时候又把这个 Mapper 接口扫描到了，这样也会引发 Mapper 接口的重复注册
+       */
       String xmlResource = type.getName().replace('.', '/') + ".xml";
       // #1347
       InputStream inputStream = type.getResourceAsStream("/" + xmlResource);
@@ -224,20 +238,28 @@ public class MapperAnnotationBuilder {
   }
 
   private String parseResultMap(Method method) {
+    // 4.1 解析方法返回值
     Class<?> returnType = getReturnType(method);
+    // 获取结果集封装引用的构造器参数定义（类比于<resultMap>中的<constructor>标签）
     Arg[] args = method.getAnnotationsByType(Arg.class);
+    // 获取结果集映射规则
     Result[] results = method.getAnnotationsByType(Result.class);
+    // 获取类型鉴别器（类比于<discriminator>标签）
     TypeDiscriminator typeDiscriminator = method.getAnnotation(TypeDiscriminator.class);
+    // 4.2 生成ResultMap的名称
     String resultMapId = generateResultMapName(method);
+    // 4.3 构造ResultMap
     applyResultMap(resultMapId, returnType, args, results, typeDiscriminator);
     return resultMapId;
   }
 
   private String generateResultMapName(Method method) {
     Results results = method.getAnnotation(Results.class);
+    // 有定义，直接取
     if (results != null && !results.id().isEmpty()) {
       return type.getName() + "." + results.id();
     }
+    // 没有定义，自动生成
     StringBuilder suffix = new StringBuilder();
     for (Class<?> c : method.getParameterTypes()) {
       suffix.append("-");
@@ -250,11 +272,14 @@ public class MapperAnnotationBuilder {
   }
 
   private void applyResultMap(String resultMapId, Class<?> returnType, Arg[] args, Result[] results, TypeDiscriminator discriminator) {
+    // 处理resultMapping
     List<ResultMapping> resultMappings = new ArrayList<>();
     applyConstructorArgs(args, returnType, resultMappings);
     applyResults(results, returnType, resultMappings);
+    // 处理鉴别器
     Discriminator disc = applyDiscriminator(resultMapId, returnType, discriminator);
     // TODO add AutoMappingBehaviour
+    // 构造ResultMap
     assistant.addResultMap(resultMapId, returnType, null, disc, resultMappings, null);
     createDiscriminatorResultMaps(resultMapId, returnType, discriminator);
   }
@@ -298,14 +323,18 @@ public class MapperAnnotationBuilder {
     final LanguageDriver languageDriver = getLanguageDriver(method);
 
     getAnnotationWrapper(method, true, statementAnnotationTypes).ifPresent(statementAnnotation -> {
+      // 【复杂】构造SQL语句源
       final SqlSource sqlSource = buildSqlSource(statementAnnotation.getAnnotation(), parameterTypeClass, languageDriver, method);
       final SqlCommandType sqlCommandType = statementAnnotation.getSqlCommandType();
+      // 解析statement的配置
       final Options options = getAnnotationWrapper(method, false, Options.class).map(x -> (Options)x.getAnnotation()).orElse(null);
+      // 生成statementId
       final String mappedStatementId = type.getName() + "." + method.getName();
 
       final KeyGenerator keyGenerator;
       String keyProperty = null;
       String keyColumn = null;
+      // 处理KeyGenerator
       if (SqlCommandType.INSERT.equals(sqlCommandType) || SqlCommandType.UPDATE.equals(sqlCommandType)) {
         // first check for SelectKey annotation - that overrides everything else
         SelectKey selectKey = getAnnotationWrapper(method, false, SelectKey.class).map(x -> (SelectKey)x.getAnnotation()).orElse(null);
@@ -323,6 +352,7 @@ public class MapperAnnotationBuilder {
         keyGenerator = NoKeyGenerator.INSTANCE;
       }
 
+      // 处理其他的配置
       Integer fetchSize = null;
       Integer timeout = null;
       StatementType statementType = StatementType.PREPARED;
@@ -345,6 +375,7 @@ public class MapperAnnotationBuilder {
         }
       }
 
+      // 处理resultMapId
       String resultMapId = null;
       if (isSelect) {
         ResultMap resultMapAnnotation = method.getAnnotation(ResultMap.class);
@@ -423,17 +454,22 @@ public class MapperAnnotationBuilder {
         }
       }
     } else if (resolvedReturnType instanceof ParameterizedType) {
+      // 取出泛型的类型
       ParameterizedType parameterizedType = (ParameterizedType) resolvedReturnType;
       Class<?> rawType = (Class<?>) parameterizedType.getRawType();
       if (Collection.class.isAssignableFrom(rawType) || Cursor.class.isAssignableFrom(rawType)) {
         Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
+        // 注意这里只会处理泛型个数为1个的
         if (actualTypeArguments != null && actualTypeArguments.length == 1) {
           Type returnTypeParameter = actualTypeArguments[0];
+          // 泛型类型为实体模型类
           if (returnTypeParameter instanceof Class<?>) {
             returnType = (Class<?>) returnTypeParameter;
+            // 套娃泛型
           } else if (returnTypeParameter instanceof ParameterizedType) {
             // (gcode issue #443) actual type can be a also a parameterized type
             returnType = (Class<?>) ((ParameterizedType) returnTypeParameter).getRawType();
+            // 泛型数组
           } else if (returnTypeParameter instanceof GenericArrayType) {
             Class<?> componentType = (Class<?>) ((GenericArrayType) returnTypeParameter).getGenericComponentType();
             // (gcode issue #525) support List<byte[]>
@@ -443,7 +479,9 @@ public class MapperAnnotationBuilder {
       } else if (method.isAnnotationPresent(MapKey.class) && Map.class.isAssignableFrom(rawType)) {
         // (gcode issue 504) Do not look into Maps if there is not MapKey annotation
         Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
+        // 泛型个数必须为2个
         if (actualTypeArguments != null && actualTypeArguments.length == 2) {
+          // 解析第1个，即value类型
           Type returnTypeParameter = actualTypeArguments[1];
           if (returnTypeParameter instanceof Class<?>) {
             returnType = (Class<?>) returnTypeParameter;

@@ -56,14 +56,20 @@ public class MapperMethod {
 
   public Object execute(SqlSession sqlSession, Object[] args) {
     Object result;
+    // sql语句的类型
     switch (command.getType()) {
       case INSERT: {
+        //转换参数
         Object param = method.convertArgsToSqlCommandParam(args);
+        //执⾏INSERT操作
+        // 转换 rowCount
         result = rowCountResult(sqlSession.insert(command.getName(), param));
         break;
       }
       case UPDATE: {
+        //转换参数
         Object param = method.convertArgsToSqlCommandParam(args);
+        // 转换 rowCount
         result = rowCountResult(sqlSession.update(command.getName(), param));
         break;
       }
@@ -73,17 +79,23 @@ public class MapperMethod {
         break;
       }
       case SELECT:
+        //⽆返回，并且有ResultHandler⽅法参数，则将查询的结果，提交给 ResultHandler 进⾏处理
         if (method.returnsVoid() && method.hasResultHandler()) {
           executeWithResultHandler(sqlSession, args);
           result = null;
+          //执⾏查询，返回列表
         } else if (method.returnsMany()) {
           result = executeForMany(sqlSession, args);
+          //执⾏查询，返回Map
         } else if (method.returnsMap()) {
           result = executeForMap(sqlSession, args);
+          //执⾏查询，返回Cursor
         } else if (method.returnsCursor()) {
           result = executeForCursor(sqlSession, args);
         } else {
+          //转换参数
           Object param = method.convertArgsToSqlCommandParam(args);
+          //查询单条
           result = sqlSession.selectOne(command.getName(), param);
           if (method.returnsOptional()
               && (result == null || !method.getReturnType().equals(result.getClass()))) {
@@ -97,10 +109,12 @@ public class MapperMethod {
       default:
         throw new BindingException("Unknown execution method for: " + command.getName());
     }
+    //返回结果为null，并且返回类型为基本类型，则抛出BindingException异常
     if (result == null && method.getReturnType().isPrimitive() && !method.returnsVoid()) {
       throw new BindingException("Mapper method '" + command.getName()
           + " attempted to return null from a method with a primitive return type (" + method.getReturnType() + ").");
     }
+    //返回结果
     return result;
   }
 

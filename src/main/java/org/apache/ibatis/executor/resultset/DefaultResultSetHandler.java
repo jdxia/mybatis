@@ -182,22 +182,33 @@ public class DefaultResultSetHandler implements ResultSetHandler {
   public List<Object> handleResultSets(Statement stmt) throws SQLException {
     ErrorContext.instance().activity("handling results").object(mappedStatement.getId());
 
+    //多ResultSet的结果集合, 每个ResultSet对应一个Object对象, 实际上, 每个object是List<Object>对象
+    //不考虑存储过程的多ResultSet的情况, 普通的查询, 实际就是1个ResultSet, 也就是说multipleResults最多就1个元素
     final List<Object> multipleResults = new ArrayList<>();
 
     int resultSetCount = 0;
+    //获得首个ResultSet对象, 并封装成ResultSetWrapper对象
     ResultSetWrapper rsw = getFirstResultSet(stmt);
 
+    //获得ResultMap数组
+    //不考虑存储过程的多ResultSet的情况, 普通的查询, 实际就是1个ResultSet, 也就是说multipleResults最多就1个元素
     List<ResultMap> resultMaps = mappedStatement.getResultMaps();
     int resultMapCount = resultMaps.size();
+    // 校验
     validateResultMapsCount(rsw, resultMapCount);
     while (rsw != null && resultMapCount > resultSetCount) {
+      //获得ResultMap对象
       ResultMap resultMap = resultMaps.get(resultSetCount);
+      //处理ResultSet, 将结果添加到multipleResults中
       handleResultSet(rsw, resultMap, multipleResults, null);
+      //获得下一个ResultSet对象, 并封装成ResultSetWrapper对象
       rsw = getNextResultSet(stmt);
+      //清理
       cleanUpAfterHandlingResultSet();
       resultSetCount++;
     }
 
+    //因为'mappedStatement.resultSets'只在存储过程中使⽤，忽略即可
     String[] resultSets = mappedStatement.getResultSets();
     if (resultSets != null) {
       while (rsw != null && resultSetCount < resultSets.length) {
@@ -212,7 +223,7 @@ public class DefaultResultSetHandler implements ResultSetHandler {
         resultSetCount++;
       }
     }
-
+    //如果是multipleResults单元素，则取⾸元素返回
     return collapseSingleResultList(multipleResults);
   }
 

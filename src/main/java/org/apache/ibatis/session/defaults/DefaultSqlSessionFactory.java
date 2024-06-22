@@ -44,6 +44,8 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
 
   @Override
   public SqlSession openSession() {
+    //第一个参数是SimpleExecutor, 第二个是事务隔离级别, 第三个是是否自动提交
+    //getDefaultExecutorType()传递的是SimpleExecutor
     return openSessionFromDataSource(configuration.getDefaultExecutorType(), null, false);
   }
 
@@ -87,15 +89,21 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
     return configuration;
   }
 
+  //ExecutorType 为Executor的类型，TransactionIsolationLevel为事务隔离级别， autoCommit是 否开启事务
+  // openSession的多个重载⽅法可以指定获得的SeqSession的Executor类型和事务的处理
   private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionIsolationLevel level, boolean autoCommit) {
     Transaction tx = null;
     try {
+      //环境对象
       final Environment environment = configuration.getEnvironment();
+      //创建事务
       final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
       tx = transactionFactory.newTransaction(environment.getDataSource(), level, autoCommit);
+      //根据参数创建执行器executor, 插件也在这里包装
       final Executor executor = configuration.newExecutor(tx, execType);
       return new DefaultSqlSession(configuration, executor, autoCommit);
     } catch (Exception e) {
+      //发生异常时, 关闭事务
       closeTransaction(tx); // may have fetched a connection so lets call close()
       throw ExceptionFactory.wrapException("Error opening session.  Cause: " + e, e);
     } finally {
