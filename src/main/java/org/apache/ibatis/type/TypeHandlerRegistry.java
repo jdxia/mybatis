@@ -55,7 +55,14 @@ import org.apache.ibatis.session.Configuration;
 public final class TypeHandlerRegistry {
 
   private final Map<JdbcType, TypeHandler<?>>  jdbcTypeHandlerMap = new EnumMap<>(JdbcType.class);
+
+  /**
+   * 这个是核心，外层Key为JavaType，内层Key为JdbcType，内存Key可以为null
+   *
+   * sql 发送的时候, mybatis知道 javaType, 进行转换
+   */
   private final Map<Type, Map<JdbcType, TypeHandler<?>>> typeHandlerMap = new ConcurrentHashMap<>();
+
   private final TypeHandler<Object> unknownTypeHandler;
   private final Map<Class<?>, TypeHandler<?>> allTypeHandlersMap = new HashMap<>();
 
@@ -76,6 +83,7 @@ public final class TypeHandlerRegistry {
    * @param configuration a MyBatis configuration
    * @since 3.5.4
    */
+  // 注册默认的
   public TypeHandlerRegistry(Configuration configuration) {
     this.unknownTypeHandler = new UnknownTypeHandler(configuration);
 

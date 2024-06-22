@@ -147,7 +147,13 @@ public class DefaultSqlSession implements SqlSession {
 
   private <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds, ResultHandler handler) {
     try {
+      //根据传⼊的全限定名+⽅法名从映射的Map中取出MappedStatement对象
+      // statement: com.example.demo.mapper.DepartmentMapper.findById
       MappedStatement ms = configuration.getMappedStatement(statement);
+      /**
+       * 调⽤Executor中的⽅法处理
+       * RowBounds是⽤来逻辑分⻚, wrapCollection(parameter)是⽤来装饰集合或者数组参数
+       */
       return executor.query(ms, wrapCollection(parameter), rowBounds, handler);
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);
@@ -217,6 +223,7 @@ public class DefaultSqlSession implements SqlSession {
   @Override
   public void commit(boolean force) {
     try {
+      // 里面会清除一级缓存
       executor.commit(isCommitOrRollbackRequired(force));
       dirty = false;
     } catch (Exception e) {
@@ -257,6 +264,7 @@ public class DefaultSqlSession implements SqlSession {
   @Override
   public void close() {
     try {
+      // 执行CachingExecutor一级缓存的clos方法
       executor.close(isCommitOrRollbackRequired(false));
       closeCursors();
       dirty = false;
@@ -283,6 +291,7 @@ public class DefaultSqlSession implements SqlSession {
     return configuration;
   }
 
+  //DefaultSqlSession 中的 getMapper
   @Override
   public <T> T getMapper(Class<T> type) {
     return configuration.getMapper(type, this);

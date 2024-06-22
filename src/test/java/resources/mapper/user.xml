@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace：命名空间，用于隔离sql，namespace中的包名要和Dao/mapper 接口的包名一致！ -->
+<mapper namespace="com.example.demo.mapper.UserMapper">
+
+    <cache />
+
+    <select id="cleanCache" resultType="int" flushCache="true">
+        select count(id) from tbl_user
+    </select>
+
+
+    <resultMap id="userHandlerMap" type="com.example.demo.entity.User">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="age" column="age"/>
+        <result property="birthday" column="birthday"/>
+        <association property="department" javaType="com.example.demo.entity.Department"/>
+    </resultMap>
+
+    <select id="findAllUseTypeHandler" resultType="com.example.demo.entity.User">
+        select * from tbl_user
+    </select>
+
+    <select id="findAllByDepartmentId" parameterType="string" resultType="com.example.demo.entity.User">
+        select * from tbl_user where department_id = #{departmentId}
+    </select>
+
+
+    <resultMap id="userMap" type="com.example.demo.entity.User">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="age" column="age"/>
+        <result property="birthday" column="birthday"/>
+        <association property="department" javaType="com.example.demo.entity.Department">
+            <id property="id" column="department_id"/>
+            <result property="name" column="department_name"/>
+        </association>
+    </resultMap>
+
+    <select id="findAll" resultMap="userMap">
+        select usr.*, dep.name as department_name
+        from tbl_user usr
+                 left join tbl_department dep on usr.department_id = dep.id
+    </select>
+
+    <resultMap id="userlazy" type="com.example.demo.entity.User">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="age" column="age"/>
+        <result property="birthday" column="birthday"/>
+        <association property="department" javaType="com.example.demo.entity.Department"
+                     select="com.example.demo.mapper.DepartmentMapper.findById" column="department_id"/>
+    </resultMap>
+
+    <select id="findAllLazy" resultMap="userlazy">
+        select usr.*, dep.name as department_name
+        from tbl_user usr
+                 left join tbl_department dep on usr.department_id = dep.id
+    </select>
+
+
+</mapper>

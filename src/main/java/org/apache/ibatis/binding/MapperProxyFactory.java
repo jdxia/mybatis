@@ -45,11 +45,18 @@ public class MapperProxyFactory<T> {
 
   @SuppressWarnings("unchecked")
   protected T newInstance(MapperProxy<T> mapperProxy) {
+    //mapperInterface，说明Mapper接口被代理了，这样子返回的对象就是Mapper接口的子类，方法被调用时会被mapperProxy拦截,也就是执行mapperProxy.invoke()方法
     return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[] { mapperInterface }, mapperProxy);
   }
 
   public T newInstance(SqlSession sqlSession) {
+    /**
+     * 创建一个MapperProxy对象，这个方法实现了JDK动态代理中的InvocationHandler接口
+     * 创建了 JDK动态代理的Handler类
+     * 构造，传⼊了 SqlSession，说明每个session中的代理对象的不同的！
+     */
     final MapperProxy<T> mapperProxy = new MapperProxy<>(sqlSession, mapperInterface, methodCache);
+    //调⽤了重载⽅法
     return newInstance(mapperProxy);
   }
 

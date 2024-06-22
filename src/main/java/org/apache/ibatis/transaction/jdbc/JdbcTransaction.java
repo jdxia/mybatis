@@ -58,6 +58,7 @@ public class JdbcTransaction implements Transaction {
   @Override
   public Connection getConnection() throws SQLException {
     if (connection == null) {
+      //从连接池获得连接的⽅法
       openConnection();
     }
     return connection;
@@ -90,6 +91,8 @@ public class JdbcTransaction implements Transaction {
       if (log.isDebugEnabled()) {
         log.debug("Closing JDBC Connection [" + connection + "]");
       }
+      // 如果是连接池, 并且是PooledDataSourceFactory, 那链接是PooledConnection代理后的connection, 看PooledConnection的构造方法里面有动态代理
+      // 当我们执行该方法，就会执行代理后的invoke方法，从而去归还我们的连接。 PooledConnection 里面的invoke方法里面归还是调用 pushConnection
       connection.close();
     }
   }
@@ -136,6 +139,7 @@ public class JdbcTransaction implements Transaction {
     if (log.isDebugEnabled()) {
       log.debug("Opening JDBC Connection");
     }
+    //从连接池获得连接
     connection = dataSource.getConnection();
     if (level != null) {
       connection.setTransactionIsolation(level.getLevel());

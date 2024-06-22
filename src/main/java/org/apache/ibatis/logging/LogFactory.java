@@ -30,7 +30,12 @@ public final class LogFactory {
 
   private static Constructor<? extends Log> logConstructor;
 
+  /**
+   * 没有配置, 默认用那个呢? 就是看下面的顺序
+   * 那个能加载到就是用那个
+   */
   static {
+    // 看 logConstructor 有没有赋值, 没有就尝试复制, 看有没有这个类
     tryImplementation(LogFactory::useSlf4jLogging);
     tryImplementation(LogFactory::useCommonsLogging);
     tryImplementation(LogFactory::useLog4J2Logging);
@@ -100,6 +105,7 @@ public final class LogFactory {
   private static void setImplementation(Class<? extends Log> implClass) {
     try {
       Constructor<? extends Log> candidate = implClass.getConstructor(String.class);
+      // 看 LogFactory
       Log log = candidate.newInstance(LogFactory.class.getName());
       if (log.isDebugEnabled()) {
         log.debug("Logging initialized using '" + implClass + "' adapter.");

@@ -44,6 +44,8 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
 
   @Override
   public SqlSession openSession() {
+    //第一个参数是SimpleExecutor, 第二个是事务隔离级别, 第三个是是否自动提交
+    //getDefaultExecutorType()传递的是SimpleExecutor
     return openSessionFromDataSource(configuration.getDefaultExecutorType(), null, false);
   }
 
@@ -87,15 +89,48 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
     return configuration;
   }
 
+  /**
+   * ExecutorType 为Executor的类型，TransactionIsolationLevel为事务隔离级别， autoCommit是 否开启事务
+   * openSession的多个重载⽅法可以指定获得的SeqSession的Executor类型和事务的处理
+   */
   private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionIsolationLevel level, boolean autoCommit) {
     Transaction tx = null;
     try {
+      /**
+       * 环境对象
+       * <environments default="development">
+       *         <environment id="development">
+       * 如果是 mybatis-spring 就是 手动new出来的
+       */
       final Environment environment = configuration.getEnvironment();
+      /**
+       * 创建事务, 生成 JdbcTransactionFactory
+       * 如果是 mybatis-spring 就是  SpringManagedTransactionFactory
+       */
       final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
+
+      /**
+       * environment.getDataSource()
+       * <dataSource type="POOLED">
+       *                 <property name="driver" value="com.mysql.cj.jdbc.Driver"/>
+       * 那spring想替换这个呢?
+       * 看 mybatis-spring 的 org.mybatis.spring.SqlSessionFactoryBean#buildSqlSessionFactory 这个方法
+       * 里面有个 targetConfiguration.setEnvironment(new Environment
+       * mybatis-spring 直接 new了一个环境对象进去, 并且 默认 使用 SpringManagedTransactionFactory
+       * 可以看下 SpringManagedTransactionFactory 的 newTransaction 方法 里面的 SpringManagedTransaction
+       * SpringManagedTransaction 的 openConnection 方法
+       */
       tx = transactionFactory.newTransaction(environment.getDataSource(), level, autoCommit);
+      /**
+       * 根据参数创建执行器executor, 插件也在这里包装
+       * JdbcTransactionFactory 被设置进了 Executor
+       */
       final Executor executor = configuration.newExecutor(tx, execType);
+
+      // Executor 被设置进了 SqlSession
       return new DefaultSqlSession(configuration, executor, autoCommit);
     } catch (Exception e) {
+      //发生异常时, 关闭事务
       closeTransaction(tx); // may have fetched a connection so lets call close()
       throw ExceptionFactory.wrapException("Error opening session.  Cause: " + e, e);
     } finally {
@@ -127,8 +162,10 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
 
   private TransactionFactory getTransactionFactoryFromEnvironment(Environment environment) {
     if (environment == null || environment.getTransactionFactory() == null) {
+      // 如果什么都没用用这个
       return new ManagedTransactionFactory();
     }
+    // 设置了用这个
     return environment.getTransactionFactory();
   }
 

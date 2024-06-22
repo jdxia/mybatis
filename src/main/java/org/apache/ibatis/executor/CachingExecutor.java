@@ -61,6 +61,7 @@ public class CachingExecutor implements Executor {
         tcm.commit();
       }
     } finally {
+      // 执行二级缓存的clos方法
       delegate.close(forceRollback);
     }
   }
@@ -84,7 +85,9 @@ public class CachingExecutor implements Executor {
 
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler) throws SQLException {
+    // BoundSql中的SQL是将 #{} 和 ${} 替换为了?的，BoundSql中的parameterMappings表示每个?一次对应的是parameterObject中的哪个参数
     BoundSql boundSql = ms.getBoundSql(parameterObject);
+    // 创建 CacheKey
     CacheKey key = createCacheKey(ms, parameterObject, rowBounds, boundSql);
     return query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
   }
@@ -92,15 +95,28 @@ public class CachingExecutor implements Executor {
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)
       throws SQLException {
+
+    /**
+     * 二级缓存
+     * 从 MappedStatement 中获取 Cache，注意这⾥的 Cache 是从 MappedStatement 中获取的
+     * 也就是我们上⾯解析Mapper中<cache/>标签中创建的，它保存在 Configuration 中
+     * 我们在上⾯解析blog.xml时分析过每⼀个 MappedStatement 都有⼀个Cache对象，就是这⾥
+     */
     Cache cache = ms.getCache();
+    // 如果配置⽂件中没有配置 <cache>，则 cache 为空
     if (cache != null) {
+      //如果需要刷新缓存的话就刷新：flushCache="true", 当前MappedStatement是否需要清空缓存
       flushCacheIfRequired(ms);
       if (ms.isUseCache() && resultHandler == null) {
         ensureNoOutParams(ms, boundSql);
         @SuppressWarnings("unchecked")
+        // 访问⼆级缓存, 先从二级缓存里取, 根据key获取缓存值
         List<E> list = (List<E>) tcm.getObject(cache, key);
+        // 二级缓存未命中
         if (list == null) {
+          // 如果没有值，则执⾏查询，这个查询实际也是先⾛⼀级缓存查询，⼀级缓存也没有的话，则进⾏DB查询
           list = delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+          // 缓存查询结果, 加入二级缓存
           tcm.putObject(cache, key, list); // issue #578 and #116
         }
         return list;
@@ -162,7 +178,9 @@ public class CachingExecutor implements Executor {
   }
 
   private void flushCacheIfRequired(MappedStatement ms) {
+    //获取MappedStatement对应的Cache，进⾏清空
     Cache cache = ms.getCache();
+    //SQL需设置flushCache="true" 才会执⾏清空
     if (cache != null && ms.isFlushCacheRequired()) {
       tcm.clear(cache);
     }

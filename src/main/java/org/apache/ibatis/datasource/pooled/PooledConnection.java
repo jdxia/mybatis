@@ -56,6 +56,7 @@ class PooledConnection implements InvocationHandler {
     this.createdTimestamp = System.currentTimeMillis();
     this.lastUsedTimestamp = System.currentTimeMillis();
     this.valid = true;
+    // 这里会进行jdk动态代理，在上面getconnection，获取连接时，就会返回这个被代理过后的Connection。
     this.proxyConnection = (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), IFACES, this);
   }
 
@@ -228,6 +229,7 @@ class PooledConnection implements InvocationHandler {
     }
   }
 
+  // invoke方法，当我们的Connection 调用任何方法时，会先调用我们的invoke方法。
   /**
    * Required for InvocationHandler implementation.
    *
@@ -243,6 +245,7 @@ class PooledConnection implements InvocationHandler {
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     String methodName = method.getName();
     if (CLOSE.equals(methodName)) {
+      // 归还连接
       dataSource.pushConnection(this);
       return null;
     }

@@ -118,18 +118,23 @@ public class CacheBuilder {
   private Cache setStandardDecorators(Cache cache) {
     try {
       MetaObject metaCache = SystemMetaObject.forObject(cache);
+      // 缓存大小
       if (size != null && metaCache.hasSetter("size")) {
         metaCache.setValue("size", size);
       }
+      // 定时清空二级缓存
       if (clearInterval != null) {
         cache = new ScheduledCache(cache);
         ((ScheduledCache) cache).setClearInterval(clearInterval);
       }
+      // 读写缓存
       if (readWrite) {
         cache = new SerializedCache(cache);
       }
+      // 外挂日志记录、同步缓存
       cache = new LoggingCache(cache);
       cache = new SynchronizedCache(cache);
+      // 阻塞读取缓存
       if (blocking) {
         cache = new BlockingCache(cache);
       }
