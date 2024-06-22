@@ -53,13 +53,18 @@ public class SimpleExecutor extends BaseExecutor {
     }
   }
 
+  // SimpleExecutor中实现⽗类的doQuery抽象⽅法
   @Override
   public <E> List<E> doQuery(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) throws SQLException {
     Statement stmt = null;
     try {
       Configuration configuration = ms.getConfiguration();
+      //传⼊参数创建StatementHanlder对象来执⾏查询, 插件也在这里包装
       StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler, boundSql);
+      //创建jdbc中的statement对象, prepareStatement进行了参数设置
+      // 获取链接 connection 在这里
       stmt = prepareStatement(handler, ms.getStatementLog());
+      // StatementHandler 进⾏处理
       return handler.query(stmt, resultHandler);
     } finally {
       closeStatement(stmt);
@@ -83,8 +88,11 @@ public class SimpleExecutor extends BaseExecutor {
 
   private Statement prepareStatement(StatementHandler handler, Log statementLog) throws SQLException {
     Statement stmt;
+    //getConnection⽅法经过重重调⽤最后会调⽤openConnection⽅法，从连接池中获得连接。
     Connection connection = getConnection(statementLog);
+    //创建Statement或者PrepareStatement对象
     stmt = handler.prepare(connection, transaction.getTimeout());
+    //设置sql上的参数, 例如PrepareStatement对象上的占位符
     handler.parameterize(stmt);
     return stmt;
   }

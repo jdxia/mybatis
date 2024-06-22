@@ -25,6 +25,11 @@ import java.sql.SQLException;
  * @author Clinton Begin
  */
 public interface Transaction {
+  /**
+   * JdbcTransaction：使用JDBC的事务管理机制，利用java.sql.Connection对象完成事务的提交。
+   * ManagedTransaction:使用Managed的事务管理机制，mybatis自身不会去实现事务管理，而是让容器（JBOSS、WebLogic）实现对事务的管理。
+   * SpringManagedTransaction:使用spring的事务管理机制，利用@Transaction注解即可实现
+   */
 
   /**
    * Retrieve inner database connection.
