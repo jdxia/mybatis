@@ -130,18 +130,24 @@ public class TypeAliasRegistry {
     // 上面传入的是Object
     // 注意这个扫描动作是全层次扫描，会扫描到子包
     resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
+
+    // 扫描packageName得到的类
     Set<Class<? extends Class<?>>> typeSet = resolverUtil.getClasses();
     for (Class<?> type : typeSet) {
       // Ignore inner classes and interfaces (including package-info.java)
       // Skip also inner classes. See issue #6
       if (!type.isAnonymousClass() && !type.isInterface() && !type.isMemberClass()) {
+        // 处理@Alias以及生成别名并进行注册
         registerAlias(type);
       }
     }
   }
 
   public void registerAlias(Class<?> type) {
+    // 获取这个类的 simpleName
     String alias = type.getSimpleName();
+
+    // 判断类上是否存在@Alias指定的别名
     Alias aliasAnnotation = type.getAnnotation(Alias.class);
     if (aliasAnnotation != null) {
       alias = aliasAnnotation.value();

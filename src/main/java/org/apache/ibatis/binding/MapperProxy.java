@@ -54,6 +54,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
   static {
     Method privateLookupIn;
     try {
+      // privateLookupIn方法是JDK9中新增的
       privateLookupIn = MethodHandles.class.getMethod("privateLookupIn", Class.class, MethodHandles.Lookup.class);
     } catch (NoSuchMethodException e) {
       privateLookupIn = null;
@@ -95,7 +96,10 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
   private MapperMethodInvoker cachedInvoker(Method method) throws Throwable {
     try {
       return MapUtil.computeIfAbsent(methodCache, method, m -> {
+        // 方法不是接口中的默认方法，PlainMethodInvoker的底层会调用MapperMethod的execute方法，从而执行方法对应的SQL
         if (m.isDefault()) {
+
+          // 方法如果是接口中的默认方法，那么方法已经有逻辑了，DefaultMethodInvoker是专门针对默认方法的MapperMethodInvoker，底层会利用反射执行默认方法的逻辑，不会执行SQL
           try {
             if (privateLookupInMethod == null) {
               return new DefaultMethodInvoker(getMethodHandleJava8(method));
@@ -108,6 +112,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
           }
         } else {
           // 默认走这里
+          // MapperMethod 的构造函数也重要
           return new PlainMethodInvoker(new MapperMethod(mapperInterface, method, sqlSession.getConfiguration()));
         }
       });
@@ -132,6 +137,7 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
   }
 
   interface MapperMethodInvoker {
+    // 默认是 PlainMethodInvoker
     Object invoke(Object proxy, Method method, Object[] args, SqlSession sqlSession) throws Throwable;
   }
 

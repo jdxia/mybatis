@@ -44,7 +44,14 @@ public class StatementUtil {
     if (transactionTimeout == null) {
       return;
     }
+
+    // 将比较后较小的值设置为最终结果值
     if (queryTimeout == null || queryTimeout == 0 || transactionTimeout < queryTimeout) {
+
+      /**
+       * spring事务注解设置的超时时间，最终在mybatis里面是设置到了statement对象中了，
+       * 是用jdbc对象来控制sql的执行时间的，如果执行时间超过了设置时间就会抛出异常，这个异常就会被spring事务切面捕获到最终导致事务回滚
+       */
       statement.setQueryTimeout(transactionTimeout);
     }
   }

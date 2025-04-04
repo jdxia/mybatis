@@ -77,14 +77,18 @@ public class MapperRegistry {
       }
       boolean loadCompleted = false;
       try {
-        // 记录在Map中，留意value的类型是MapperProxyFactory
-        // 为mapper接口创建一个MapperProxyFactory代理
+        /**
+         * 记录在Map中，留意value的类型是MapperProxyFactory
+         * 为mapper接口创建一个MapperProxyFactory代理
+         */
         knownMappers.put(type, new MapperProxyFactory<>(type));
         // It's important that the type is added before the parser is run
         // otherwise the binding may automatically be attempted by the
         // mapper parser. If the type is already known, it won't try.
-        //重要的是，必须在运行 Mapper 解析器之前添加 Mapper 接口类型，否则 Mapper 的解析器可能会自动尝试进行绑定。如果 Mapper 类型是已知的，则不会尝试。
-        // type就是mapper接口
+        /**
+         * 重要的是，必须在运行 Mapper 解析器之前添加 Mapper 接口类型，否则 Mapper 的解析器可能会自动尝试进行绑定。如果 Mapper 类型是已知的，则不会尝试。
+         * type就是mapper接口
+         */
         MapperAnnotationBuilder parser = new MapperAnnotationBuilder(config, type);
         /**
          * 利用MapperAnnotationBuilder解析Mapper接口

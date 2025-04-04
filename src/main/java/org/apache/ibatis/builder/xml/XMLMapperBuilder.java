@@ -99,7 +99,8 @@ public class XMLMapperBuilder extends BaseBuilder {
       // 2. 解析mapper元素
       configurationElement(parser.evalNode("/mapper"));
       configuration.addLoadedResource(resource);
-      // 3. 解析和绑定命名空间
+
+      // 3. 解析和绑定命名空间, 会判断接口有没有解析过, 不能接口和xml都解析过同时存
       bindMapperForNamespace();
     }
 
@@ -152,9 +153,10 @@ public class XMLMapperBuilder extends BaseBuilder {
 
   private void buildStatementFromContext(List<XNode> list, String requiredDatabaseId) {
     for (XNode context : list) {
+      // 一个MapperStatement节点对应一个statementParser
       final XMLStatementBuilder statementParser = new XMLStatementBuilder(configuration, builderAssistant, context, requiredDatabaseId);
       try {
-        // 【复杂、困难】借助XMLStatementBuilder解析一个一个的statement标签
+        // 借助XMLStatementBuilder解析一个一个的statement标签
         // 每⼀条执⾏语句转换成⼀个MappedStatement
         statementParser.parseStatementNode();
       } catch (IncompleteElementException e) {
@@ -286,25 +288,33 @@ public class XMLMapperBuilder extends BaseBuilder {
   private ResultMap resultMapElement(XNode resultMapNode, List<ResultMapping> additionalResultMappings, Class<?> enclosingType) {
     ErrorContext.instance().activity("processing " + resultMapNode.getValueBasedIdentifier());
     // 解析resultMap映射的目标结果集实体类型
+    // 主要就是取javaType的值
     String type = resultMapNode.getStringAttribute("type",
         resultMapNode.getStringAttribute("ofType",
             resultMapNode.getStringAttribute("resultType",
                 resultMapNode.getStringAttribute("javaType"))));
+
     // 加载目标结果集实体类型
+    // 获取javaType别名对应的类型，会加载类
     Class<?> typeClass = resolveClass(type);
     if (typeClass == null) {
       typeClass = inheritEnclosingType(resultMapNode, enclosingType);
     }
     Discriminator discriminator = null;
     List<ResultMapping> resultMappings = new ArrayList<>(additionalResultMappings);
+
+    // <resultMap>下的子节点
     List<XNode> resultChildren = resultMapNode.getChildren();
     // 解析resultMap的子标签，并封装为resultMapping
     for (XNode resultChild : resultChildren) {
       if ("constructor".equals(resultChild.getName())) {
+        // <constructor>用来指定构造方法创建对象
         processConstructorElement(resultChild, typeClass, resultMappings);
       } else if ("discriminator".equals(resultChild.getName())) {
+        // <discriminator>相当于switch case，可以根据某个字段的不同值，嵌入不同的resultMapping
         discriminator = processDiscriminatorElement(resultChild, typeClass, resultMappings);
       } else {
+        // resultMapping中是否定义了<id>
         List<ResultFlag> flags = new ArrayList<>();
         if ("id".equals(resultChild.getName())) {
           flags.add(ResultFlag.ID);
@@ -479,12 +489,18 @@ public class XMLMapperBuilder extends BaseBuilder {
         // Spring may not know the real resource name so we set a flag
         // to prevent loading again this resource from the mapper interface
         // look at MapperAnnotationBuilder#loadXmlResource
-        // Spring可能不知道真实的资源名称，因此设置了一个标志来防止再次从Mapper接口加载此资源
-        //每当解析到一个存在的 Mapper 接口时，会标记这个接口对应的 mapper.xml 文件已加载，这样即便又进行包扫描时读到了这个 Mapper 接口，当它要去加载 mapper.xml 时检查到已经加载过了，就不会再重复加载了
+
+        /**
+         * Spring可能不知道真实的资源名称，因此设置了一个标志来防止再次从Mapper接口加载此资源
+         * 每当解析到一个存在的 Mapper 接口时，会标记这个接口对应的 mapper.xml 文件已加载，这样即便又进行包扫描时读到了这个 Mapper 接口，
+         * 当它要去加载 mapper.xml 时检查到已经加载过了，就不会再重复加载了
+         */
         configuration.addLoadedResource("namespace:" + namespace);
-        // boundType: namespace所指定的接口类型
-        // 他里面又会去解析接口, 会去解析比如 动态mapper接口里面的 @Select("select 1")
-        // 重点
+        /**
+         * boundType: namespace所指定的接口类型
+         * 他里面又会去解析接口, 会去解析比如 动态mapper接口里面的 @Select("select 1")
+         * 重点
+         */
         configuration.addMapper(boundType);
       }
     }

@@ -880,6 +880,7 @@ public class Configuration {
   }
 
   public <T> void addMapper(Class<T> type) {
+    // 往下
     mapperRegistry.addMapper(type);
   }
 

@@ -47,7 +47,10 @@ public final class MappedStatement {
   private boolean flushCacheRequired;
   private boolean useCache;
   private boolean resultOrdered;
+
+  // 这个sql操作的类型
   private SqlCommandType sqlCommandType;
+
   private KeyGenerator keyGenerator;
   private String[] keyProperties;
   private String[] keyColumns;

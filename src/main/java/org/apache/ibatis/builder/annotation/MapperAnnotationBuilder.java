@@ -96,6 +96,7 @@ import org.apache.ibatis.type.UnknownTypeHandler;
  */
 public class MapperAnnotationBuilder {
 
+  // 方法上要有这些注解才可以, 没有是不会解析的
   private static final Set<Class<? extends Annotation>> statementAnnotationTypes = Stream
       .of(Select.class, Update.class, Insert.class, Delete.class, SelectProvider.class, UpdateProvider.class,
           InsertProvider.class, DeleteProvider.class)
@@ -114,27 +115,35 @@ public class MapperAnnotationBuilder {
 
   public void parse() {
     String resource = type.toString();
-    // 2. 检查接口是否已经加载
+
+    // 检查接口是否已经加载
     if (!configuration.isResourceLoaded(resource)) {
+
       // 加载Mapper接口对应的mapper.xml
       loadXmlResource();
       configuration.addLoadedResource(resource);
       assistant.setCurrentNamespace(type.getName());
-      // 3. 解析注解配置的缓存
+
+      // 解析@CacheNamespace
       parseCache();
+
+      // 解析@CacheNamespaceRef
       parseCacheRef();
+
       // 解析Mapper方法
       for (Method method : type.getMethods()) {
+
+        // 不处理桥接方法和默认方法
         if (!canHaveStatement(method)) {
           continue;
         }
-        // 4. 解析注解配置的ResultMap
+        // 解析注解配置的ResultMap
         if (getAnnotationWrapper(method, false, Select.class, SelectProvider.class).isPresent()
             && method.getAnnotation(ResultMap.class) == null) {
           parseResultMap(method);
         }
         try {
-          // 5. 构造statement
+          // 构造statement
           parseStatement(method);
         } catch (IncompleteElementException e) {
           configuration.addIncompleteMethod(new MethodResolver(this, method));
@@ -323,7 +332,7 @@ public class MapperAnnotationBuilder {
     final LanguageDriver languageDriver = getLanguageDriver(method);
 
     getAnnotationWrapper(method, true, statementAnnotationTypes).ifPresent(statementAnnotation -> {
-      // 【复杂】构造SQL语句源
+      // 构造SQL语句源
       final SqlSource sqlSource = buildSqlSource(statementAnnotation.getAnnotation(), parameterTypeClass, languageDriver, method);
       final SqlCommandType sqlCommandType = statementAnnotation.getSqlCommandType();
       // 解析statement的配置

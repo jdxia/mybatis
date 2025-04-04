@@ -21,17 +21,29 @@
         "http://mybatis.org/dtd/mybatis-3-config.dtd">
 <configuration>
     <settings>
-        <setting name="logImpl" value="LOG4J"/>
+<!--        <setting name="logImpl" value="LOG4J"/>-->
+        <setting name="logImpl" value="SLF4J"/>
 <!--        <setting name="logImpl" value="STDOUT_LOGGING"/>-->
+
+        <!-- 禁用日志输出 -->
+<!--        <setting name="logImpl" value="NO_LOGGING"/>-->
     </settings>
 
-    <typeHandlers>
-        <typeHandler handler="com.example.demo.TypeHandler.DepartmentTypeHandler"
-                     javaType="com.example.demo.entity.Department" jdbcType="VARCHAR"/>
-    </typeHandlers>
+<!--    <typeAliases>-->
+<!--        &lt;!&ndash;        <typeAlias type="com.zhouyu.UserInfo" alias="User"/>&ndash;&gt;-->
+<!--        &lt;!&ndash;   会自动对该包下的类生成别名，比如com.zhouyu.User对应的别名为user，同时也会处理@Alias注解     &ndash;&gt;-->
+<!--        <typeAlias alias="ZhouyuLanguageDriver" type="com.zhouyu.ZhouyuLanguageDriver" />-->
+<!--        <package name="com.zhouyu"/>-->
+<!--    </typeAliases>-->
+
+<!--    <typeHandlers>-->
+<!--        <typeHandler handler="com.example.demo.TypeHandler.DepartmentTypeHandler"-->
+<!--                     javaType="com.example.demo.entity.Department" jdbcType="VARCHAR"/>-->
+<!--    </typeHandlers>-->
 
     <environments default="development">
         <environment id="development">
+            <!-- type="JDBC" 是 JdbcTransactionFactory -->
             <transactionManager type="JDBC"/>
             <dataSource type="POOLED">
                 <property name="driver" value="com.mysql.cj.jdbc.Driver"/>

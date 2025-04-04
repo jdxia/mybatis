@@ -76,8 +76,11 @@ public class SqlSessionFactoryBuilder {
     try {
       //创建XMLConfigBuilder, XMLConfigBuilder用来解析mybatis配置文件的类
       XMLConfigBuilder parser = new XMLConfigBuilder(inputStream, environment, properties);
-      //执行xml解析
-      //创建DefaultSqlSessionFactory. 里面参数是创建Configuration
+
+      /**
+       * 执行xml解析, parse 重点
+       * 创建DefaultSqlSessionFactory. 里面参数是创建Configuration
+       */
       return build(parser.parse());
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error building SqlSession.", e);

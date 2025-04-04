@@ -99,31 +99,66 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
     //开始解析, 把这个值设置为true
     parsed = true;
-    //parser是XPathParser解析器对象, 读取节点数据 <configuration>是mybatis配置文件的顶层标签
+
+    /**
+     * 重点
+     * parser是XPathParser解析器对象, 读取节点数据 <configuration>是mybatis配置文件的顶层标签
+     */
     parseConfiguration(parser.evalNode("/configuration"));
     //返回Configuration对象
     return configuration;
   }
 
   private void parseConfiguration(XNode root) {
+    // 按照这些顺序解析
     try {
       // issue #117 read properties first
+      /**
+       * 环境变量
+       */
       propertiesElement(root.evalNode("properties"));
+
+      // 解析 settings 节点, 只是解析
       Properties settings = settingsAsProperties(root.evalNode("settings"));
+
+      /**
+       * 加载自定义虚拟文件系统
+       * 如果是一个配置获取还好, 如果是jar包里面一个文件, 获取就比较麻烦, 所以 mybatis 设计出来这个虚拟文件系统
+       */
       loadCustomVfs(settings);
+
+      // 看 settings 里面有没有设置 logImpl 日志框架
       loadCustomLogImpl(settings);
+
+      // 类型别名解析
       typeAliasesElement(root.evalNode("typeAliases"));
+
       //插件
       pluginElement(root.evalNode("plugins"));
       objectFactoryElement(root.evalNode("objectFactory"));
       objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
       reflectorFactoryElement(root.evalNode("reflectorFactory"));
+
+      // 把上面settings 节点配置的属性设置到configuration里面
       settingsElement(settings);
+
       //数据源环境配置
       // read it after objectFactory and objectWrapperFactory issue #631
       environmentsElement(root.evalNode("environments"));
       databaseIdProviderElement(root.evalNode("databaseIdProvider"));
+
+      /**
+       * jdbc类型和java类型的映射配置
+       * <typeHandlers>
+       *         <typeHandler handler="com.study.StudyTypeHandler" jdbcType="VARCHAR" javaType="Integer"/>
+       * </typeHandlers>
+       *
+       *
+       * mysql类型和jdbc类型映射关系配置可以看 MysqlType, 里面有映射关系
+       */
       typeHandlerElement(root.evalNode("typeHandlers"));
+
+
       //解析 <mappers/> 标签
       /**
        * 这个mapper会解析成什么样子? 继续看里面源码
@@ -142,9 +177,15 @@ public class XMLConfigBuilder extends BaseBuilder {
     if (context == null) {
       return new Properties();
     }
+
+    // <settings>标签下的子节点
     Properties props = context.getChildrenAsProperties();
+
     // Check that all settings are known to the configuration class
+    // 利用MetaClass可以更方便的判断Configuration中是否存在某个方法
     MetaClass metaConfig = MetaClass.forClass(Configuration.class, localReflectorFactory);
+
+    // 判断settings中的配置项name是否在Configuration中有set方法，后面要调用set将配置项值设置给Configuration对象
     for (Object key : props.keySet()) {
       if (!metaConfig.hasSetter(String.valueOf(key))) {
         throw new BuilderException("The setting " + key + " is not known.  Make sure you spelled it correctly (case sensitive).");
@@ -160,7 +201,11 @@ public class XMLConfigBuilder extends BaseBuilder {
       for (String clazz : clazzes) {
         if (!clazz.isEmpty()) {
           @SuppressWarnings("unchecked")
-          Class<? extends VFS> vfsImpl = (Class<? extends VFS>)Resources.classForName(clazz);
+          /**
+           * springboot 整合mybatis 里面也针对这个提供了vfs, springbootVFS
+           * springbootVFS 用的是 spring 的 文件解析工具读取
+           */
+            Class<? extends VFS> vfsImpl = (Class<? extends VFS>)Resources.classForName(clazz);
           configuration.setVfsImpl(vfsImpl);
         }
       }
@@ -169,12 +214,16 @@ public class XMLConfigBuilder extends BaseBuilder {
 
   private void loadCustomLogImpl(Properties props) {
     Class<? extends Log> logImpl = resolveClass(props.getProperty("logImpl"));
+    // 往下
     configuration.setLogImpl(logImpl);
   }
 
   private void typeAliasesElement(XNode parent) {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
+        /**
+         * typeAliases里面 只有2个 一个是package, 一个是typeAlias
+         */
         if ("package".equals(child.getName())) {
           // 处理package的包扫描指定别名
           String typeAliasPackage = child.getStringAttribute("name");
@@ -187,8 +236,10 @@ public class XMLConfigBuilder extends BaseBuilder {
           try {
             Class<?> clazz = Resources.classForName(type);
             if (alias == null) {
+              // 如果没有写别名, 会看类上面的注解 是否存在 @Alias 指定的别名
               typeAliasRegistry.registerAlias(clazz);
             } else {
+              // 注册别名
               typeAliasRegistry.registerAlias(alias, clazz);
             }
           } catch (ClassNotFoundException e) {
@@ -245,6 +296,8 @@ public class XMLConfigBuilder extends BaseBuilder {
       Properties defaults = context.getChildrenAsProperties();
       String resource = context.getStringAttribute("resource");
       String url = context.getStringAttribute("url");
+
+      // resource 和 url 不能同时存在
       if (resource != null && url != null) {
         // 二者不可兼得
         throw new BuilderException("The properties element cannot specify both a URL and a resource based property file reference.  Please specify one or the other.");
@@ -261,6 +314,8 @@ public class XMLConfigBuilder extends BaseBuilder {
       }
       // 将配置属性值放入解析器、全局配置中
       parser.setVariables(defaults);
+
+      // 设置给 variables 属性
       configuration.setVariables(defaults);
     }
   }
@@ -298,12 +353,16 @@ public class XMLConfigBuilder extends BaseBuilder {
 
   private void environmentsElement(XNode context) throws Exception {
     if (context != null) {
+
+      // 如果调用SqlSessionFactory的build方法没有传environment，那就用默认的
       if (environment == null) {
         // 从default中取出默认的数据库环境配置标识
         environment = context.getStringAttribute("default");
       }
       for (XNode child : context.getChildren()) {
         String id = child.getStringAttribute("id");
+
+        // 判断environment和id是否相等
         // 只会构造默认的数据库环境配置
         if (isSpecifiedEnvironment(id)) {
           // 解析transactionManager标签，生成TransactionFactory
@@ -334,9 +393,14 @@ public class XMLConfigBuilder extends BaseBuilder {
       databaseIdProvider = (DatabaseIdProvider) resolveClass(type).getDeclaredConstructor().newInstance();
       databaseIdProvider.setProperties(properties);
     }
+
+    // mybatis-config.xml中指定的Environment
     Environment environment = configuration.getEnvironment();
     if (environment != null && databaseIdProvider != null) {
+      // 根据DataSource找出databaseId
       String databaseId = databaseIdProvider.getDatabaseId(environment.getDataSource());
+
+      // 相当于当前mybatis用的是哪个数据库，后续会用来匹配MapperStatement
       configuration.setDatabaseId(databaseId);
     }
   }
@@ -366,18 +430,29 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void typeHandlerElement(XNode parent) {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
-        // 包扫描
+        /**
+         * 包扫描
+         *
+         * 如果是包扫描可以通过注解描述是那2个类型之间的相互转换
+         * @MappedTypes(String.class)
+         * @MappedJdbcTypes(JdbcType.INTEGER)
+         * public class StudyTypeHandler
+         */
         if ("package".equals(child.getName())) {
           String typeHandlerPackage = child.getStringAttribute("name");
           typeHandlerRegistry.register(typeHandlerPackage);
         } else {
           // 逐个注册TypeHandler
+
           String javaTypeName = child.getStringAttribute("javaType");
           String jdbcTypeName = child.getStringAttribute("jdbcType");
           String handlerTypeName = child.getStringAttribute("handler");
+
+          // 根据别名找到类名加载类
           Class<?> javaTypeClass = resolveClass(javaTypeName);
           JdbcType jdbcType = resolveJdbcType(jdbcTypeName);
           Class<?> typeHandlerClass = resolveClass(handlerTypeName);
+
           if (javaTypeClass != null) {
             if (jdbcType == null) {
               typeHandlerRegistry.register(javaTypeClass, typeHandlerClass);
@@ -395,8 +470,14 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void mapperElement(XNode parent) throws Exception {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
-        // 包扫描Mapper接口
-        // 如果要同时使用package自动扫描和通过mapper明确指定要加载的mapper，一定要确保package自动扫描的范围不包含明确指定的mapper，否则在通过package扫描的interface的时候，尝试加载对应xml文件的loadXmlResource()的逻辑中出现判重出错，报org.apache.ibatis.binding.BindingException异常，即使xml文件中包含的内容和mapper接口中包含的语句不重复也会出错，包括加载mapper接口时自动加载的xml mapper也一样会出错。
+        /**
+         * 包扫描Mapper接口
+         *
+         * 如果要同时使用package自动扫描和通过mapper明确指定要加载的mapper，
+         * 一定要确保package自动扫描的范围不包含明确指定的mapper，
+         * 否则在通过package扫描的interface的时候，尝试加载对应xml文件的loadXmlResource()的逻辑中出现判重出错，报org.apache.ibatis.binding.BindingException异常，
+         * 即使xml文件中包含的内容和mapper接口中包含的语句不重复也会出错，包括加载mapper接口时自动加载的xml mapper也一样会出错。
+         */
         if ("package".equals(child.getName())) {
           String mapperPackage = child.getStringAttribute("name");
           configuration.addMappers(mapperPackage);
@@ -408,6 +489,8 @@ public class XMLConfigBuilder extends BaseBuilder {
           if (resource != null && url == null && mapperClass == null) {
             ErrorContext.instance().resource(resource);
             try(InputStream inputStream = Resources.getResourceAsStream(resource)) {
+
+              // 一个mapper文件对应一个mapperParser
               XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
               //进行解析
               mapperParser.parse();

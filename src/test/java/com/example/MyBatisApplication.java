@@ -16,25 +16,26 @@
 package com.example;
 
 import com.example.demo.entity.Department;
-import com.example.demo.entity.User;
 import com.example.demo.mapper.DepartmentMapper;
-import com.example.demo.mapper.UserMapper;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 
 import java.io.InputStream;
-import java.util.Date;
-import java.util.List;
 
 public class MyBatisApplication {
 
   public static void main(String[] args) throws Exception {
     InputStream xml = Resources.getResourceAsStream("mybatis-config.xml");
+
+    // build 往下
     SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(xml);
 
-    // 创建SqlSession, Executor插件也在这里包装起来, 是在里面的 configuration.newExecutor(tx, execType);
+    /**
+     * 创建 SqlSession, Executor插件也在这里包装起来, 是在里面的 configuration.newExecutor(tx, execType);
+     * 生成 SqlSession 对象而已, 创建 JdbcTransactionFactory
+     */
     SqlSession sqlSession = sqlSessionFactory.openSession();
 
     System.out.println("========================> 开始");
@@ -43,26 +44,30 @@ public class MyBatisApplication {
     DepartmentMapper departmentMapper = sqlSession.getMapper(DepartmentMapper.class);
     Department department = departmentMapper.findById("18ec781fbefd727923b0d35740b177ab");
     System.out.println(department);
-
-//    sqlSession.clearCache();
-
-    Department department2 = departmentMapper.findById("18ec781fbefd727923b0d35740b177ab");
-    System.out.println("department == department2 : " + (department == department2));   // true
-    // 关闭第一个SqlSession使二级缓存保存
-    sqlSession.close();
-
-    System.out.println("========================> 第一个SqlSession关闭, 第二个SqlSession开启");
-    SqlSession sqlSession2 = sqlSessionFactory.openSession();
-    DepartmentMapper departmentMapper22 = sqlSession2.getMapper(DepartmentMapper.class);
-    Department department22 = departmentMapper22.findById("18ec781fbefd727923b0d35740b177ab");
-    System.out.println("department22 == department2 : " + (department22 == department2));
-
-    System.out.println("=====================> 执行完毕");
+//
+////    sqlSession.clearCache();
+//
+//    Department department2 = departmentMapper.findById("18ec781fbefd727923b0d35740b177ab");
+//    System.out.println("department == department2 : " + (department == department2));   // true
+//    // 关闭第一个SqlSession使二级缓存保存
+//    sqlSession.close();
+//
+//    System.out.println("========================> 第一个SqlSession关闭, 第二个SqlSession开启");
+//    handleTwo(sqlSessionFactory, department2);
+//
+//    System.out.println("=====================> 执行完毕");
 
 //    sqlSession.commit();
     // 手动关闭sqlSession，归还连接
     sqlSession.close();
 
+  }
+
+  private static void handleTwo(SqlSessionFactory sqlSessionFactory, Department department2) {
+    SqlSession sqlSession2 = sqlSessionFactory.openSession();
+    DepartmentMapper departmentMapper22 = sqlSession2.getMapper(DepartmentMapper.class);
+    Department department22 = departmentMapper22.findById("18ec781fbefd727923b0d35740b177ab");
+    System.out.println("department22 == department2 : " + (department22 == department2));
   }
 
 }
