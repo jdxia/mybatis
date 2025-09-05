@@ -41,6 +41,42 @@
 <!--                     javaType="com.example.demo.entity.Department" jdbcType="VARCHAR"/>-->
 <!--    </typeHandlers>-->
 
+    <!-- 插件配置 -->
+    <plugins>
+        <!-- Executor拦截器 -->
+        <plugin interceptor="com.example.demo.interceptor.ExecutorInterceptor">
+            <property name="enableDetailLog" value="true"/>
+            <property name="enablePerformanceMonitor" value="true"/>
+            <property name="slowQueryThreshold" value="1000"/>
+        </plugin>
+
+        <!-- ParameterHandler拦截器 -->
+        <plugin interceptor="com.example.demo.interceptor.ParameterHandlerInterceptor">
+            <property name="enableDetailLog" value="true"/>
+            <property name="enablePerformanceMonitor" value="true"/>
+            <property name="enableSecurityCheck" value="true"/>
+            <property name="slowParameterThreshold" value="100"/>
+        </plugin>
+
+        <!-- ResultSetHandler拦截器 -->
+        <plugin interceptor="com.example.demo.interceptor.ResultSetHandlerInterceptor">
+            <property name="enableDetailLog" value="true"/>
+            <property name="enablePerformanceMonitor" value="true"/>
+            <property name="enableResultStatistics" value="true"/>
+            <property name="slowResultSetThreshold" value="500"/>
+            <property name="largeResultSetThreshold" value="10000"/>
+        </plugin>
+
+        <!-- StatementHandler拦截器 -->
+        <plugin interceptor="com.example.demo.interceptor.StatementHandlerInterceptor">
+            <property name="enableDetailLog" value="true"/>
+            <property name="enablePerformanceMonitor" value="true"/>
+            <property name="enableSqlSecurityCheck" value="true"/>
+            <property name="enableSqlOptimizationAdvice" value="true"/>
+            <property name="slowSqlThreshold" value="1000"/>
+        </plugin>
+    </plugins>
+
     <environments default="development">
         <environment id="development">
             <!-- type="JDBC" 是 JdbcTransactionFactory -->

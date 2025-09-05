@@ -389,6 +389,13 @@
           <exclude>**/*.java</exclude>
         </excludes>
       </resource>
+      <!-- 添加标准的资源目录支持 -->
+      <resource>
+        <directory>src/main/resources</directory>
+        <includes>
+          <include>**/*</include>
+        </includes>
+      </resource>
     </resources>
     <testResources>
       <testResource>

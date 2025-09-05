@@ -16,13 +16,16 @@
 package com.example;
 
 import com.example.demo.entity.Department;
+import com.example.demo.interceptor.ExecutorInterceptor;
 import com.example.demo.mapper.DepartmentMapper;
 import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 
 import java.io.InputStream;
+import java.util.Properties;
 
 public class MyBatisApplication {
 
@@ -31,6 +34,17 @@ public class MyBatisApplication {
 
     // build 往下
     SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(xml);
+
+//    Configuration configuration = sqlSessionFactory.getConfiguration();
+//
+//    // 创建并配置ExecutorInterceptor
+//    ExecutorInterceptor executorInterceptor = new ExecutorInterceptor();
+//    Properties executorProps = new Properties();
+//    executorProps.setProperty("enableDetailLog", "false"); // 关闭详细日志
+//    executorProps.setProperty("slowQueryThreshold", "2000"); // 设置慢查询阈值为2秒
+//    executorInterceptor.setProperties(executorProps);
+//    // 添加拦截器
+//    configuration.addInterceptor(executorInterceptor);
 
     /**
      * 创建 SqlSession, Executor插件也在这里包装起来, 是在里面的 configuration.newExecutor(tx, execType);
