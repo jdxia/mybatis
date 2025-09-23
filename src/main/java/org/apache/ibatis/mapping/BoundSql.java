@@ -35,6 +35,8 @@ import org.apache.ibatis.session.Configuration;
  */
 public class BoundSql {
 
+  // 注意这个是final, 在 JEP 500 prepare to Make Final Mean Final
+  // 反射修改final, 这个漏洞在mh堵上了, 有点影响jit优化的 这个东西
   private final String sql;
   private final List<ParameterMapping> parameterMappings;
   private final Object parameterObject;

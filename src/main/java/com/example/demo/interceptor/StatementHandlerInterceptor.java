@@ -142,7 +142,7 @@ public class StatementHandlerInterceptor implements Interceptor {
     // 4) 将注释追加到 SQL（通常放在末尾更稳妥）
     String newSql = sql + " /* [SQLMarking] " + comment + " */";
 
-    // 5) 反射回写到 BoundSql.sql 字段
+    // 5) 反射回写到 BoundSql.sql 字段, 后续就不能这样了, 这是final字段
     meta.setValue("delegate.boundSql.sql", newSql);
 
 
