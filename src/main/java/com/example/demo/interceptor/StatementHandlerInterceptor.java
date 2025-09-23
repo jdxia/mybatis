@@ -143,6 +143,7 @@ public class StatementHandlerInterceptor implements Interceptor {
     String newSql = sql + " /* [SQLMarking] " + comment + " */";
 
     // 5) 反射回写到 BoundSql.sql 字段, 后续就不能这样了, 这是final字段
+    // 建议替换boundSql
     meta.setValue("delegate.boundSql.sql", newSql);
 
 
