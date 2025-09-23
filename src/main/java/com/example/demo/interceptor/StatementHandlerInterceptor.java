@@ -120,6 +120,12 @@ public class StatementHandlerInterceptor implements Interceptor {
     MetaObject meta = SystemMetaObject.forObject(sh);
 
     // 2) 取 BoundSql（拿 SQL 文本），和 MappedStatement（拿 statementId）
+
+    /**
+     * 报错信息：There is no getter for property named 'delegate' in 'class com.sun.proxy.$Proxy211'
+     * 这种是多个插件之间有先后顺序依赖，别的插件先行执行，影响了delegate的获取，调整 SQLMarking Plugin 的位置，向上或向下调整，可解决冲突。
+     */
+
     BoundSql boundSql = (BoundSql) meta.getValue("delegate.boundSql");
     MappedStatement ms = (MappedStatement) meta.getValue("delegate.mappedStatement");
 
