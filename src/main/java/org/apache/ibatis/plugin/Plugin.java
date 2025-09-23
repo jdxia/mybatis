@@ -63,6 +63,7 @@ public class Plugin implements InvocationHandler {
     try {
       Set<Method> methods = signatureMap.get(method.getDeclaringClass());
       if (methods != null && methods.contains(method)) {
+        // 命中你定义的拦截点
         return interceptor.intercept(new Invocation(target, method, args));
       }
       return method.invoke(target, args);

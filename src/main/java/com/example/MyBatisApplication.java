@@ -19,12 +19,15 @@ import com.example.demo.entity.Department;
 import com.example.demo.interceptor.ExecutorInterceptor;
 import com.example.demo.mapper.DepartmentMapper;
 import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.plugin.Interceptor;
+import org.apache.ibatis.plugin.Plugin;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.util.Properties;
 
 public class MyBatisApplication {
@@ -51,6 +54,11 @@ public class MyBatisApplication {
      * 生成 SqlSession 对象而已, 创建 JdbcTransactionFactory
      */
     SqlSession sqlSession = sqlSessionFactory.openSession();
+
+    /**
+     * plugin是在 {@link Plugin#wrap(Object, Interceptor)} 这里被包装的
+     * 在 {@link Plugin#invoke(Object, Method, Object[])} 这里被调用的
+     */
 
     System.out.println("========================> 开始");
 

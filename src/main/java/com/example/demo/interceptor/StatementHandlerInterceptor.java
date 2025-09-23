@@ -143,9 +143,7 @@ public class StatementHandlerInterceptor implements Interceptor {
     String newSql = sql + " /* [SQLMarking] " + comment + " */";
 
     // 5) 反射回写到 BoundSql.sql 字段
-    Field sqlField = BoundSql.class.getDeclaredField("sql");
-    sqlField.setAccessible(true);
-    sqlField.set(boundSql, newSql);
+    meta.setValue("delegate.boundSql.sql", newSql);
 
 
     // 记录开始时间用于性能监控
