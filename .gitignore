@@ -108,3 +108,5 @@ Thumbs.db
 # NetBeans specific files/directories
 .nbattrs
 .flattened-pom.xml
+
+.cursorrules

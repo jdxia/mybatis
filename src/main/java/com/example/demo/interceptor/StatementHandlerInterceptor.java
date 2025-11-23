@@ -1,5 +1,21 @@
+/**
+ *    Copyright 2009-2025 the original author or authors.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
 package com.example.demo.interceptor;
 
+import com.example.demo.interceptor.sqlmark.SQLMarkingInterceptor;
 import org.apache.ibatis.cursor.Cursor;
 import org.apache.ibatis.executor.parameter.ParameterHandler;
 import org.apache.ibatis.executor.statement.StatementHandler;
@@ -115,7 +131,12 @@ public class StatementHandlerInterceptor implements Interceptor {
     String methodName = invocation.getMethod().getName();
     Object[] args = invocation.getArgs();
 
-    // 1) 取真实的目标对象（如用了 MyBatis-Plus，可用其工具拿 real target）
+    // 1) 取真实的目标对象（如用了 MyBatis-Plus，可用其工具拿 real target, 参考 PluginUtils.realTarget ）
+    /**
+     * 实际不应该这样的, 应该 参考 {@link SQLMarkingInterceptor#getRoutingStatementHandler(Object)}
+     * Invocation 里只保存“当前层 target”，而 Plugin 通过 JDK Proxy 包裹后，真正的对象被塞进 Plugin 的 target 字段（参考 src/main/java/org/apache/ibatis/plugin/Plugin.java）。
+     * 有多个插件时是“Proxy → Plugin → target → Proxy → ”连锁，直接 invocation.getTarget() 只能拿到外层。
+     */
     StatementHandler sh = (StatementHandler) invocation.getTarget();
     MetaObject meta = SystemMetaObject.forObject(sh);
 
@@ -125,7 +146,6 @@ public class StatementHandlerInterceptor implements Interceptor {
      * 报错信息：There is no getter for property named 'delegate' in 'class com.sun.proxy.$Proxy211'
      * 这种是多个插件之间有先后顺序依赖，别的插件先行执行，影响了delegate的获取，调整 SQLMarking Plugin 的位置，向上或向下调整，可解决冲突。
      */
-
     BoundSql boundSql = (BoundSql) meta.getValue("delegate.boundSql");
     MappedStatement ms = (MappedStatement) meta.getValue("delegate.mappedStatement");
 

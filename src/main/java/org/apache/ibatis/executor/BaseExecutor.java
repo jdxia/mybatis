@@ -1,5 +1,5 @@
 /**
- *    Copyright 2009-2020 the original author or authors.
+ *    Copyright 2009-2024 the original author or authors.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -340,8 +340,12 @@ public abstract class BaseExecutor implements Executor {
     // 缓存占位，代表此时还没有查询到数据
     localCache.putObject(key, EXECUTION_PLACEHOLDER);
     try {
-      //执行查询方法
-      // 获取链接 connection 在这里面
+
+      /**
+       * {@link SimpleExecutor#doQuery(MappedStatement, Object, RowBounds, ResultHandler, BoundSql)}
+       * 执行查询方法
+       * 获取链接 connection 在这里面
+       */
       list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);
     } finally {
       localCache.removeObject(key);
